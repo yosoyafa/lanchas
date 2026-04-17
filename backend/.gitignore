@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Database
+*.db
+*.db-journal
+prisma/dev.db
+
+# WhatsApp session data
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp files
+/tmp
+
+# Build
+dist/
+build/
