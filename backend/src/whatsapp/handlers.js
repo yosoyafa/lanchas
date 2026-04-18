@@ -15,17 +15,22 @@ const CONTEXT_TIMEOUT = 60 * 60 * 1000; // 1 hour
 // Handler for incoming messages
 client.on('message', async (message) => {
   // Debug: Log all incoming messages
-  console.log(`📨 Message received - From: ${message.from}, Type: ${message.type}, Body: ${message.body?.substring(0, 50)}`);
+  console.log(`📨 Message received - From: ${message.from}, Type: ${message.type}, FromMe: ${message.fromMe}, Body: ${message.body?.substring(0, 50)}`);
 
-  // Ignore group messages, own messages, and status/broadcasts
+  // Ignore group messages and status/broadcasts
   if (message.from.includes('@g.us') ||
-      message.fromMe ||
       message.from === 'status@broadcast') {
     if (message.from === 'status@broadcast') {
       console.log('📢 Ignored status/broadcast message');
     }
     return;
   }
+
+  // TEMPORARILY DISABLED: Ignore own messages
+  // if (message.fromMe) {
+  //   console.log('🚫 Ignored own message');
+  //   return;
+  // }
 
   try {
     // If it's an image/document, assume it's a payment receipt
