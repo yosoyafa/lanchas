@@ -12,6 +12,19 @@ const conversationContext = new Map();
 // Reset context after 1 hour of inactivity
 const CONTEXT_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
+// DEBUGGING: Listen to ALL possible message events
+client.on('message_create', async (message) => {
+  console.log(`🆕 message_create - From: ${message.from}, Type: ${message.type}, FromMe: ${message.fromMe}, Body: ${message.body?.substring(0, 50)}`);
+});
+
+client.on('message_received', async (message) => {
+  console.log(`📥 message_received - From: ${message.from}, Type: ${message.type}, Body: ${message.body?.substring(0, 50)}`);
+});
+
+client.on('message_ack', async (message) => {
+  console.log(`✓ message_ack - From: ${message.from}`);
+});
+
 // Handler for incoming messages
 client.on('message', async (message) => {
   // Debug: Log all incoming messages
