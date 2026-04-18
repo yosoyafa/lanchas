@@ -6,13 +6,13 @@ const MESSAGES = {
   payment: '💳 Para reservar:\n\nBanco: Bancolombia\nCuenta: 1234567890\nTitular: Tu Negocio\n\n📸 Envía tu comprobante de pago por aquí.'
 };
 
-// URLs of boat images from Unsplash (free, high-quality)
-// Selected by client - white and red inflatable boats on sea
+// URLs of boat images
+// TODO: Replace with Cloudinary URLs for better reliability
 const BOAT_IMAGES = {
   // 2 people riding on white and red inflatable boat on blue sea
-  boat1: 'https://images.unsplash.com/photo-1595571026085-b6c7bd20f157?w=800&q=80',
+  boat1: 'https://source.unsplash.com/uAhhyqtjfLc/800x600',
   // Man riding on white and red boat on sea during daytime
-  boat2: 'https://images.unsplash.com/photo-1592321138473-09de0b5cc0d6?w=800&q=80'
+  boat2: 'https://source.unsplash.com/o9oQaOGpLz0/800x600'
 };
 
 module.exports = { MESSAGES, BOAT_IMAGES };
