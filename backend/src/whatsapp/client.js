@@ -64,6 +64,12 @@ client.on('qr', async (qr) => {
 
 client.on('ready', () => {
   console.log('✅ WhatsApp bot is ready!');
+  console.log('🎯 Bot is now listening for messages...');
+
+  // Test: Send a message to confirm bot is working
+  setInterval(() => {
+    console.log('💓 Bot heartbeat - Still alive and listening');
+  }, 60000); // Every minute
 });
 
 client.on('authenticated', () => {

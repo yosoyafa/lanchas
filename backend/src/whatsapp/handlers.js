@@ -14,6 +14,9 @@ const CONTEXT_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
 // Handler for incoming messages
 client.on('message', async (message) => {
+  // Debug: Log all incoming messages
+  console.log(`📨 Message received - From: ${message.from}, Type: ${message.type}, Body: ${message.body?.substring(0, 50)}`);
+
   // Ignore group messages, own messages, and status/broadcasts
   if (message.from.includes('@g.us') ||
       message.fromMe ||
