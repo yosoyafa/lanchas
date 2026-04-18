@@ -1,6 +1,28 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');
 const QRCode = require('qrcode');
+const fs = require('fs');
+const path = require('path');
+
+// Clean WhatsApp session if RESET_SESSION=true
+if (process.env.RESET_SESSION === 'true') {
+  const sessionPath = path.join(__dirname, '../../.wwebjs_auth');
+  console.log('🗑️  RESET_SESSION=true detected');
+  console.log(`🗑️  Cleaning WhatsApp session folder: ${sessionPath}`);
+
+  try {
+    if (fs.existsSync(sessionPath)) {
+      fs.rmSync(sessionPath, { recursive: true, force: true });
+      console.log('✅ Session folder deleted successfully');
+    } else {
+      console.log('ℹ️  Session folder does not exist (already clean)');
+    }
+  } catch (error) {
+    console.error('❌ Error cleaning session folder:', error);
+  }
+
+  console.log('⚠️  Remember to remove RESET_SESSION variable after successful QR scan!\n');
+}
 
 // Configuración de Puppeteer para Railway
 const puppeteerConfig = {
@@ -62,9 +84,28 @@ client.on('qr', async (qr) => {
   }
 });
 
-client.on('ready', () => {
+client.on('ready', async () => {
   console.log('✅ WhatsApp bot is ready!');
   console.log('🎯 Bot is now listening for messages...');
+
+  // Log session info
+  try {
+    const info = client.info;
+    if (info) {
+      console.log(`📱 Connected as: ${info.pushname} (${info.wid.user})`);
+      console.log(`📱 Platform: ${info.platform}`);
+    }
+
+    // Check if client can receive messages
+    const state = await client.getState();
+    console.log(`🔌 Connection state: ${state}`);
+
+    if (state !== 'CONNECTED') {
+      console.warn(`⚠️  WARNING: State is ${state}, not CONNECTED. This may cause message reception issues.`);
+    }
+  } catch (error) {
+    console.error('❌ Error getting client info:', error);
+  }
 
   // Test: Send a message to confirm bot is working
   setInterval(() => {
@@ -84,7 +125,20 @@ client.on('disconnected', (reason) => {
   console.log('⚠️  WhatsApp disconnected:', reason);
 });
 
+client.on('loading_screen', (percent, message) => {
+  console.log(`⏳ Loading: ${percent}% - ${message}`);
+});
+
+client.on('change_state', (state) => {
+  console.log(`🔄 State changed to: ${state}`);
+});
+
+client.on('remote_session_saved', () => {
+  console.log('💾 Remote session saved');
+});
+
 // Initialize the client
+console.log('🚀 Initializing WhatsApp client...');
 client.initialize();
 
 module.exports = client;
