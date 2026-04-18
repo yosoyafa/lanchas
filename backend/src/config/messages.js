@@ -6,13 +6,12 @@ const MESSAGES = {
   payment: '💳 Para reservar:\n\nBanco: Bancolombia\nCuenta: 1234567890\nTitular: Tu Negocio\n\n📸 Envía tu comprobante de pago por aquí.'
 };
 
-// URLs of boat images
-// TODO: Replace with Cloudinary URLs for better reliability
+// URLs of boat images from Cloudinary
 const BOAT_IMAGES = {
-  // 2 people riding on white and red inflatable boat on blue sea
-  boat1: 'https://source.unsplash.com/uAhhyqtjfLc/800x600',
-  // Man riding on white and red boat on sea during daytime
-  boat2: 'https://source.unsplash.com/o9oQaOGpLz0/800x600'
+  // Lancha 1: Principal Charlie 41 Alamar Beach
+  boat1: 'https://res.cloudinary.com/dl9gjjvm5/image/upload/v1776485636/Principal-Lancha-Rapida-Charlie-41-Alamar-Beach_od7ydc.jpg',
+  // Lancha 2: Charlie 41 Alamar Beach
+  boat2: 'https://res.cloudinary.com/dl9gjjvm5/image/upload/v1776485636/Lancha-Rapida-Charlie-41-Alamar-Beach-00003_sniu2t.jpg'
 };
 
 module.exports = { MESSAGES, BOAT_IMAGES };
