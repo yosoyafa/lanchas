@@ -16,9 +16,9 @@ const puppeteerConfig = {
   ]
 };
 
-// Usar Chromium en producción (Railway)
+// Usar Chromium en producción (Railway/Docker)
 if (process.env.NODE_ENV === 'production') {
-  puppeteerConfig.executablePath = '/nix/var/nix/profiles/default/bin/chromium-browser';
+  puppeteerConfig.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium';
 }
 
 const client = new Client({
