@@ -1,287 +1,487 @@
-# Sistema de Reservas de Botes por WhatsApp - MVP
+# 🚤 Alquiler de Lanchas - WhatsApp Bot
 
-Sistema automatizado para gestionar reservas de botes a través de WhatsApp con panel de administración web.
+Sistema automatizado de reservas de lanchas completamente por WhatsApp, desplegado en Railway con WhatsApp Cloud API de Meta.
 
-## Características
+[![Estado](https://img.shields.io/badge/Estado-Producción-success)](https://lanchas-production.up.railway.app)
+[![WhatsApp](https://img.shields.io/badge/WhatsApp-Cloud%20API-25D366)](https://developers.facebook.com/docs/whatsapp)
+[![Railway](https://img.shields.io/badge/Deploy-Railway-blueviolet)](https://railway.app)
 
-- 🤖 Bot de WhatsApp que responde automáticamente con información de botes
-- 📸 Recepción automática de comprobantes de pago
-- 🖥️ Panel web para aprobar/rechazar reservas
-- 📱 Notificaciones automáticas a clientes por WhatsApp
-- 💾 Base de datos PostgreSQL
+---
 
-## Estructura del Proyecto
+## 🎯 ¿Qué hace este proyecto?
+
+Un bot de WhatsApp que automatiza completamente el proceso de reserva de lanchas:
+
+1. **Cliente** envía "lancha" por WhatsApp
+2. **Bot** responde con fotos, información y precios
+3. **Cliente** elige fecha y lancha
+4. **Bot** valida disponibilidad en tiempo real
+5. **Cliente** envía nombre y comprobante de pago
+6. **Bot** guarda todo en la base de datos
+7. **Admin** aprueba desde el dashboard
+8. **Bot** confirma automáticamente al cliente
+
+**Todo sin intervención manual hasta la aprobación final.**
+
+---
+
+## ✨ Características
+
+### Para Clientes
+
+- ✅ Reserva **100% por WhatsApp**, sin apps ni formularios
+- ✅ Respuesta **inmediata 24/7** (bot automático)
+- ✅ Ver **fotos reales** de las lanchas
+- ✅ Validación de **disponibilidad en tiempo real**
+- ✅ Envío de **comprobante por foto**
+- ✅ **Confirmación automática** después de aprobación
+
+### Para Administradores
+
+- ✅ **Dashboard web** para gestión (pendiente frontend)
+- ✅ **Base de datos** con todas las reservas
+- ✅ **Comprobantes almacenados** en la nube (Cloudinary)
+- ✅ **Validación de fechas** automática
+- ✅ **Notificaciones** automáticas a clientes
+- ✅ **API REST** para integración
+
+### Técnicas
+
+- ✅ **WhatsApp Cloud API** oficial de Meta (estable, no requiere QR)
+- ✅ **Webhooks** para mensajes en tiempo real
+- ✅ **PostgreSQL** para persistencia de datos
+- ✅ **Cloudinary** para almacenamiento de imágenes
+- ✅ **Railway** para hosting (CI/CD automático)
+- ✅ **Docker** containerizado
+- ✅ **Prisma ORM** para gestión de BD
+
+---
+
+## 🚀 Demo en Vivo
+
+**Landing Page:** https://lanchas-production.up.railway.app
+
+**WhatsApp:** Configurado con número de prueba de Meta
+
+---
+
+## 🏗️ Arquitectura
+
+```
+┌──────────────────┐
+│  Cliente         │
+│  WhatsApp        │
+└────────┬─────────┘
+         │
+         │ "lancha"
+         │
+         ▼
+┌──────────────────────────────────┐
+│  Meta WhatsApp Cloud API         │
+│  (Official Business API)         │
+└────────┬─────────────────────────┘
+         │
+         │ POST /api/whatsapp/webhook
+         │
+         ▼
+┌──────────────────────────────────────────────┐
+│  Railway                                     │
+│  ┌────────────────────────────────────────┐  │
+│  │  Node.js Backend (Express)             │  │
+│  │  ┌──────────────────────────────────┐  │  │
+│  │  │  WhatsApp Handler                │  │  │
+│  │  │  - Procesa mensajes              │  │  │
+│  │  │  - Valida disponibilidad         │  │  │
+│  │  │  - Guarda en BD                  │  │  │
+│  │  │  - Envía respuestas              │  │  │
+│  │  └──────────────────────────────────┘  │  │
+│  │                                         │  │
+│  │  ┌──────────────────────────────────┐  │  │
+│  │  │  PostgreSQL Database             │  │  │
+│  │  │  - Bookings                      │  │  │
+│  │  │  - Admins                        │  │  │
+│  │  └──────────────────────────────────┘  │  │
+│  └────────────────────────────────────────┘  │
+└──────────────────────────────────────────────┘
+         │
+         │ Upload images
+         │
+         ▼
+┌──────────────────────────────────┐
+│  Cloudinary                      │
+│  (Image Storage)                 │
+└──────────────────────────────────┘
+```
+
+---
+
+## 📁 Estructura del Proyecto
 
 ```
 lanchas/
-├── backend/          # Node.js + Express + WhatsApp Bot
+├── backend/                    # Node.js + Express
 │   ├── src/
-│   │   ├── config/   # Configuración (DB, Cloudinary, mensajes)
-│   │   ├── whatsapp/ # Cliente y handlers de WhatsApp
-│   │   ├── api/      # Endpoints REST
-│   │   └── index.js  # Entry point
-│   └── prisma/       # Schema y migrations
+│   │   ├── api/               # API REST
+│   │   │   ├── auth.js        # ✅ Autenticación
+│   │   │   ├── bookings.js    # ✅ Gestión de reservas
+│   │   │   ├── whatsapp.js    # ✅ Webhook WhatsApp
+│   │   │   ├── landing.js     # ✅ Página principal
+│   │   │   └── privacy.js     # ✅ Políticas
+│   │   │
+│   │   ├── whatsapp/          # Lógica del bot
+│   │   │   ├── api.js         # ✅ Enviar mensajes
+│   │   │   └── handlers.js    # ✅ Procesar mensajes
+│   │   │
+│   │   ├── config/            # Configuración
+│   │   │   ├── database.js    # PostgreSQL
+│   │   │   ├── cloudinary.js  # Imágenes
+│   │   │   └── messages.js    # ⭐ Textos del bot
+│   │   │
+│   │   ├── server.js          # Express server
+│   │   └── index.js           # Punto de entrada
+│   │
+│   ├── prisma/                # Base de datos
+│   │   └── schema.prisma      # Esquema
+│   │
+│   └── Documentación/
+│       ├── MIGRATION_GUIDE.md
+│       ├── DEPLOY_CHECKLIST.md
+│       └── WHATSAPP_SETUP.md
 │
-├── frontend/         # React + Vite
-│   └── src/
-│       ├── pages/    # Login y Dashboard
-│       ├── lib/      # API client
-│       └── App.jsx
+├── frontend/                  # React (pendiente)
 │
-└── README.md
+├── CLAUDE.md                  # ⭐ Guía para Claude
+├── PROJECT_STATUS.md          # ⭐ Estado completo
+└── README.md                  # Este archivo
 ```
 
-## Requisitos Previos
+---
 
-- Node.js 18+
-- PostgreSQL (local o Railway)
-- Cuenta de Cloudinary (gratis)
-- Número de WhatsApp para el bot
+## 🛠️ Tecnologías
 
-## Instalación
+### Backend
 
-### 1. Clonar y configurar backend
+- **Node.js 20** - Runtime
+- **Express 5.2.1** - Web framework
+- **Prisma 6.19.3** - ORM
+- **PostgreSQL** - Database
+- **Axios 1.7.2** - HTTP client (WhatsApp API)
+- **Cloudinary 2.9.0** - Image storage
+- **JWT 9.0.3** - Authentication
+- **Bcrypt 6.0.0** - Password hashing
+
+### DevOps
+
+- **Railway** - Hosting & deployment
+- **GitHub** - Version control
+- **Docker** - Containerization
+
+### APIs Externas
+
+- **WhatsApp Cloud API (Meta)** - Messaging
+- **Cloudinary API** - Image storage
+
+---
+
+## 📦 Instalación Local
+
+### Prerrequisitos
+
+- Node.js 20+
+- PostgreSQL (o usar Railway)
+- Cuenta Meta Developers
+- Cuenta Cloudinary
+- Cuenta Railway (para deploy)
+
+### 1. Clonar Repositorio
 
 ```bash
-cd backend
+git clone https://github.com/yosoyafa/lanchas.git
+cd lanchas/backend
+```
+
+### 2. Instalar Dependencias
+
+```bash
 npm install
 ```
 
-### 2. Configurar variables de entorno
+### 3. Configurar Variables de Entorno
 
-Edita `backend/.env`:
+Crear archivo `.env`:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/lanchas"
-JWT_SECRET="tu-secret-super-seguro-aqui"
-CLOUDINARY_CLOUD_NAME="tu-cloud-name"
-CLOUDINARY_API_KEY="tu-api-key"
-CLOUDINARY_API_SECRET="tu-api-secret"
-NODE_ENV="development"
+# Database
+DATABASE_URL=postgresql://user:password@localhost:5432/lanchas
+
+# Auth
+JWT_SECRET=your-super-secret-key
+
+# Cloudinary
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# WhatsApp Cloud API
+WHATSAPP_PHONE_NUMBER_ID=your-phone-number-id
+WHATSAPP_ACCESS_TOKEN=your-access-token
+WHATSAPP_WABA_ID=your-waba-id
+WHATSAPP_VERIFY_TOKEN=your-verify-token
+WHATSAPP_APP_SECRET=your-app-secret
+
+# Server
+NODE_ENV=development
 PORT=3000
 ```
 
-**Obtener credenciales de Cloudinary:**
-1. Crear cuenta en https://cloudinary.com (gratis)
-2. Dashboard → Settings → Access Keys
-3. Copiar Cloud Name, API Key, API Secret
+Ver **backend/WHATSAPP_SETUP.md** para obtener credenciales de Meta.
 
-### 3. Inicializar base de datos
+### 4. Setup Base de Datos
 
 ```bash
-cd backend
-npx prisma migrate dev --name init
-npm run seed
+# Generar Prisma Client
+npx prisma generate
+
+# Ejecutar migraciones
+npx prisma migrate dev
+
+# (Opcional) Seed con datos de prueba
+npx prisma db seed
 ```
 
-Esto creará:
-- Usuario admin por defecto: `admin` / `admin123`
-
-### 4. Subir fotos de botes a Cloudinary
-
-1. Ir a Cloudinary Dashboard
-2. Media Library → Upload
-3. Subir 2 fotos de los botes
-4. Copiar las URLs públicas
-5. Editar `backend/src/config/messages.js` y actualizar `BOAT_IMAGES`
-
-### 5. Configurar frontend
+### 5. Iniciar Servidor
 
 ```bash
-cd frontend
-npm install
-```
-
-Edita `frontend/.env`:
-```env
-VITE_API_URL=http://localhost:3000/api
-```
-
-## Uso
-
-### Iniciar el sistema en desarrollo
-
-**Terminal 1 - Backend:**
-```bash
-cd backend
+# Desarrollo
 npm run dev
+
+# Producción
+npm start
 ```
 
-En la primera ejecución, aparecerá un código QR. Escanéalo con WhatsApp:
-1. Abrir WhatsApp en tu teléfono
-2. Menú (⋮) → Dispositivos vinculados
-3. Vincular dispositivo
-4. Escanear el QR que aparece en la terminal
+Servidor corriendo en: http://localhost:3000
 
-**Terminal 2 - Frontend:**
+### 6. Configurar Webhook en Meta
+
+Ver guía completa en **backend/WHATSAPP_SETUP.md**
+
+---
+
+## 🚀 Deployment a Producción
+
+### Railway (Configurado)
+
+El proyecto ya está desplegado en Railway con CI/CD automático.
+
+**Para desplegar cambios:**
+
 ```bash
-cd frontend
-npm run dev
+git add .
+git commit -m "Descripción del cambio"
+git push
 ```
 
-Abre http://localhost:5173 en tu navegador.
+Railway detecta el push y despliega automáticamente en 2-3 minutos.
 
-### Flujo Completo
+**URL Producción:** https://lanchas-production.up.railway.app
 
-1. **Cliente envía mensaje a WhatsApp** → Bot responde con fotos de botes e info de pago
-2. **Cliente envía foto de comprobante** → Bot confirma recepción
-3. **Admin abre panel web** → Ve reserva pendiente con comprobante
-4. **Admin selecciona fecha y bote** → Click "Aprobar"
-5. **Cliente recibe confirmación automática** por WhatsApp
+Ver **backend/DEPLOY_CHECKLIST.md** para guía completa.
 
-### Acceso al Panel Admin
+---
 
-- URL: http://localhost:5173
-- Usuario: `admin`
-- Contraseña: `admin123`
+## 📖 Documentación Completa
 
-## Configuración de Mensajes
+| Documento | Descripción | Audiencia |
+|-----------|-------------|-----------|
+| **[CLAUDE.md](./CLAUDE.md)** | 🤖 Cómo usar Claude sin conocimientos técnicos | No técnicos |
+| **[PROJECT_STATUS.md](./PROJECT_STATUS.md)** | 📊 Estado completo y detallado | Todos |
+| **[backend/MIGRATION_GUIDE.md](./backend/MIGRATION_GUIDE.md)** | 📜 Historia de migración a Cloud API | Técnicos |
+| **[backend/DEPLOY_CHECKLIST.md](./backend/DEPLOY_CHECKLIST.md)** | ✅ Guía de deployment | Técnicos |
+| **[backend/WHATSAPP_SETUP.md](./backend/WHATSAPP_SETUP.md)** | 📱 Setup de WhatsApp Cloud API | Técnicos |
+| **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** | 🔧 Solución de problemas | Todos |
 
-Los mensajes del bot están en `backend/src/config/messages.js`:
+---
+
+## 🧪 Testing
+
+### Test Manual del Bot
+
+1. Agregar tu número en Meta como destinatario de prueba
+2. Enviar "lancha" al número de WhatsApp
+3. Seguir el flujo de conversación
+4. Verificar respuestas automáticas
+
+### Verificar Logs
+
+Railway → Deployments → Latest → Logs
+
+```
+📥 Webhook received:
+📨 Message from 57XXXXXXXXX, Type: text
+✅ Message sent to 57XXXXXXXXX
+📨 Sent boat info to 57XXXXXXXXX
+```
+
+---
+
+## 📝 Editar Mensajes del Bot
+
+Los mensajes están en `/backend/src/config/messages.js`:
 
 ```javascript
 const MESSAGES = {
   welcome: '¡Hola! 👋\n\nGracias por contactarnos...',
-  boat1: '🚤 Bote 1: Capacidad 8 personas, motor 40HP',
-  boat2: '🚤 Bote 2: Capacidad 6 personas, motor 30HP',
+  boat1: '🚤 Lancha 1: Capacidad 8 personas, motor 40HP',
+  boat2: '🚤 Lancha 2: Capacidad 6 personas, motor 30HP',
   payment: '💳 Para reservar:\n\nBanco: Bancolombia...'
 };
 
 const BOAT_IMAGES = {
-  boat1: 'https://res.cloudinary.com/tu-cloud/image/upload/boat1.jpg',
-  boat2: 'https://res.cloudinary.com/tu-cloud/image/upload/boat2.jpg'
+  boat1: 'https://res.cloudinary.com/...',
+  boat2: 'https://res.cloudinary.com/...'
 };
 ```
 
-Edita estos valores para personalizar.
+**Para cambiar:**
+1. Editar el archivo
+2. `git commit -m "Update messages"`
+3. `git push`
+4. Railway despliega automáticamente
 
-## Base de Datos
+Ver **CLAUDE.md** para guía paso a paso sin conocimientos técnicos.
 
-### Ver registros
+---
 
-```bash
-cd backend
-npx prisma studio
+## 🔐 Configuración de Seguridad
+
+### Variables de Entorno Sensibles
+
+Configuradas en Railway (Variables tab):
+
+```env
+DATABASE_URL=postgresql://...
+JWT_SECRET=...
+CLOUDINARY_API_SECRET=...
+WHATSAPP_ACCESS_TOKEN=...
+WHATSAPP_APP_SECRET=...
 ```
 
-Abre un navegador visual en http://localhost:5555
+⚠️ **NUNCA subir a GitHub:**
+- `.env`
+- `.env.production`
+- Tokens o API keys
 
-### Crear nuevo admin
+✅ **Ya configurado en `.gitignore`**
 
-```bash
-cd backend
-node -e "
-const bcrypt = require('bcrypt');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
-(async () => {
-  const hash = await bcrypt.hash('nueva-password', 10);
-  await prisma.admin.create({
-    data: { username: 'nuevo-admin', passwordHash: hash }
-  });
-  console.log('Admin creado');
-  await prisma.\$disconnect();
-})();
-"
-```
+---
 
-## Deploy a Producción
+## 📊 Estado del Proyecto
 
-### Backend en Railway
+### ✅ Completado (100%)
 
-1. Crear cuenta en https://railway.app
-2. New Project → Deploy from GitHub
-3. Agregar PostgreSQL Database
-4. Variables de entorno (todas las de `.env`)
-5. Deploy
-6. Abrir Railway Console → Escanear QR del bot
-7. El bot quedará corriendo 24/7
+- [x] Bot de WhatsApp funcional
+- [x] Webhook implementado
+- [x] Base de datos con Prisma
+- [x] Almacenamiento de imágenes (Cloudinary)
+- [x] Validación de disponibilidad
+- [x] Notificaciones automáticas
+- [x] Landing page
+- [x] Políticas de privacidad
+- [x] Desplegado en Railway
+- [x] Documentación completa
 
-### Frontend en Vercel
+### ⚠️ Pendiente
 
-1. Subir código a GitHub
-2. Importar en https://vercel.com
-3. Variable de entorno:
-   ```
-   VITE_API_URL=https://tu-backend.railway.app/api
-   ```
-4. Deploy
+- [ ] Dashboard de administración (frontend)
+- [ ] Token permanente de WhatsApp (actualmente temporal 24h)
+- [ ] WhatsApp Flows (opcional)
+- [ ] Notificaciones por email (opcional)
 
-### Costos
+Ver **PROJECT_STATUS.md** para detalles completos.
 
-- Railway: $0 (500 horas gratis/mes)
-- Vercel: $0 (ilimitado)
-- Cloudinary: $0 (25GB gratis)
-- PostgreSQL: $0 (incluido en Railway)
-- **Total: $0/mes**
+---
 
-## Troubleshooting
+## 💰 Costos Mensuales
+
+### Servicios Utilizados
+
+- **Railway:** $5/mes (con $5 créditos gratis = $0 primer mes)
+- **WhatsApp Cloud API:** $0 (1000 conversaciones gratis/mes)
+- **Cloudinary:** $0 (plan gratuito suficiente)
+- **GitHub:** $0 (repositorio)
+
+**Total: ~$0-5/mes**
+
+Para el MVP con bajo volumen: **$0/mes**
+
+---
+
+## 🐛 Solución de Problemas
 
 ### Bot no responde
 
-1. Verificar que el proceso backend esté corriendo
-2. Revisar logs: pueden haber errores de autenticación
-3. Re-escanear QR si dice "disconnected"
+1. Verificar logs en Railway
+2. Verificar token no expiró (temporal = 24h)
+3. Verificar webhook está suscrito a "messages"
 
-### Error de conexión a base de datos
+### Ver guía completa
 
-1. Verificar que PostgreSQL esté corriendo
-2. Revisar `DATABASE_URL` en `.env`
-3. Ejecutar migrations: `npx prisma migrate dev`
+Consulta **TROUBLESHOOTING.md** para problemas comunes y soluciones.
 
-### Error al subir comprobantes
+---
 
-1. Verificar credenciales de Cloudinary en `.env`
-2. Verificar que las credenciales estén activas en Cloudinary Dashboard
+## 🤝 Contribuir
 
-### Frontend no se conecta al backend
+Si quieres mejorar el proyecto:
 
-1. Verificar que backend esté corriendo en puerto 3000
-2. Verificar `VITE_API_URL` en `frontend/.env`
-3. Revisar CORS: backend debe permitir origen del frontend
+1. Fork el repositorio
+2. Crear rama: `git checkout -b feature/mejora`
+3. Commit: `git commit -m "Add: nueva mejora"`
+4. Push: `git push origin feature/mejora`
+5. Crear Pull Request
 
-## Limitaciones del MVP
+---
 
-1. **Un solo admin**: Solo un usuario puede acceder al panel
-2. **Sin calendario visual**: Solo lista de reservas
-3. **Sin notificaciones push**: Polling cada 30 segundos
-4. **Mensajes hardcodeados**: Cambios requieren editar código
-5. **WhatsApp Web**: Puede desconectarse (requiere re-escanear QR)
+## 📞 Soporte
 
-## Próximas Mejoras
+**Documentación:** Lee primero CLAUDE.md y PROJECT_STATUS.md
 
-- [ ] Calendario visual para ver disponibilidad
-- [ ] Múltiples usuarios admin con roles
-- [ ] Editar mensajes del bot desde el panel
-- [ ] Notificaciones en tiempo real (WebSockets)
-- [ ] Migrar a WhatsApp Business API
-- [ ] Estadísticas y reportes
-- [ ] Integración con Google Calendar
+**Issues:** [GitHub Issues](https://github.com/yosoyafa/lanchas/issues)
 
-## Scripts Útiles
+**Logs:** Railway → Deployments → Latest → Logs
 
-**Backend:**
-```bash
-npm run dev          # Desarrollo con nodemon
-npm start            # Producción
-npm run seed         # Crear usuario admin
-npx prisma studio    # Ver base de datos
-```
+---
 
-**Frontend:**
-```bash
-npm run dev          # Desarrollo
-npm run build        # Build para producción
-npm run preview      # Preview del build
-```
+## 🙏 Agradecimientos
 
-## Soporte
+- **Meta** - WhatsApp Cloud API
+- **Railway** - Hosting confiable
+- **Cloudinary** - Almacenamiento de imágenes
+- **Prisma** - ORM excepcional
+- **Claude (Anthropic)** - Asistencia en desarrollo
 
-Para problemas o preguntas, revisa:
-1. Logs del backend y frontend
-2. Estado de servicios (Railway, Cloudinary)
-3. Conexión de WhatsApp
+---
 
-## Licencia
+## 📝 Licencia
 
-MIT
+Proyecto privado. Todos los derechos reservados.
+
+---
+
+## 🎯 Próximos Pasos
+
+1. **Urgente:** Crear token permanente de WhatsApp (ver WHATSAPP_SETUP.md)
+2. **Importante:** Terminar dashboard de admin (frontend)
+3. **Opcional:** Implementar WhatsApp Flows
+4. **Opcional:** Agregar notificaciones por email
+
+Ver roadmap completo en **PROJECT_STATUS.md**
+
+---
+
+**Versión:** 1.0
+**Estado:** ✅ Producción
+**Última actualización:** Mayo 2026
+**URL:** https://lanchas-production.up.railway.app
+
+⭐ **El bot está funcionando al 100%** - Listo para recibir clientes reales.
