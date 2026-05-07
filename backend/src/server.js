@@ -4,6 +4,7 @@ require('dotenv').config();
 
 const authRoutes = require('./api/auth');
 const bookingsRoutes = require('./api/bookings');
+const whatsappRoutes = require('./api/whatsapp');
 
 const app = express();
 
@@ -16,10 +17,13 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
+app.use('/api/whatsapp', whatsappRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  const domain = process.env.RAILWAY_PUBLIC_DOMAIN || `http://localhost:${PORT}`;
+  console.log(`📱 WhatsApp webhook: ${domain}/api/whatsapp/webhook`);
 });
 
 module.exports = app;

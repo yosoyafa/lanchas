@@ -1,0 +1,45 @@
+═══════════════════════════════════════════════════════════
+  RAILWAY ENVIRONMENT VARIABLES - WhatsApp Cloud API
+═══════════════════════════════════════════════════════════
+
+Copy and paste these 5 variables into Railway:
+
+────────────────────────────────────────────────────────────
+
+WHATSAPP_PHONE_NUMBER_ID=1128610730326714
+
+────────────────────────────────────────────────────────────
+
+WHATSAPP_WABA_ID=3238258159688449
+
+────────────────────────────────────────────────────────────
+
+WHATSAPP_ACCESS_TOKEN=EAATlBdSWZAlIBRXsZCf3kHMx64aFFHEfjdJKhrbCFl1DO3Hq9xuMtAvQj4XZBdHYTYH52XFMRrCKLqTBr5PbnsvrBNL72lne4LyQSuTPuOZC2D0fNotecImnIdlCz4k5fXvE1u6TmImn5nyHKMStJkAJrZB1ZC3JWwYB6oRZCJW3TEoxrda6cZAlApztYZCaCIIUfBR0VA4PkIOYa94Rq8JCAHadZAswMsbZAAI1zTuRWHBLZAKbWj83wKve09dL6YoWLcp6P3ZCPgCx1U22xmn6U1ABvesJfOoErdRZA7sPZAH4QZDZD
+
+────────────────────────────────────────────────────────────
+
+WHATSAPP_VERIFY_TOKEN=lanchas-webhook-secret-2026
+
+────────────────────────────────────────────────────────────
+
+WHATSAPP_APP_SECRET=44b1436ee7163160ab32f89cb7ce4744
+
+────────────────────────────────────────────────────────────
+
+⚠️  IMPORTANT NOTES:
+
+1. Access Token EXPIRES in 24 hours (temporary token)
+   → After testing, create permanent System User token
+   → See DEPLOY_CHECKLIST.md section "Create Permanent Access Token"
+
+2. Keep all your existing variables:
+   ✓ DATABASE_URL
+   ✓ JWT_SECRET
+   ✓ CLOUDINARY_CLOUD_NAME
+   ✓ CLOUDINARY_API_KEY
+   ✓ CLOUDINARY_API_SECRET
+   ✓ NODE_ENV=production
+
+3. After adding variables, Railway will auto-redeploy
+
+═══════════════════════════════════════════════════════════

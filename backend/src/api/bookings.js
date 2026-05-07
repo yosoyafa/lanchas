@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const prisma = require('../config/database');
-const whatsappClient = require('../whatsapp/client');
+const whatsappApi = require('../whatsapp/api');
 
 const router = express.Router();
 
@@ -68,7 +68,7 @@ router.post('/:id/approve', async (req, res) => {
     });
 
     const greeting = customerName ? `¡Hola ${customerName}! ` : '';
-    await whatsappClient.sendMessage(
+    await whatsappApi.sendMessage(
       booking.customerPhone,
       `🎉 ${greeting}¡Reserva confirmada!\n\n` +
       `👤 Nombre: ${customerName || 'No especificado'}\n` +
@@ -106,7 +106,7 @@ router.post('/:id/reject', async (req, res) => {
     });
 
     // Notify customer
-    await whatsappClient.sendMessage(
+    await whatsappApi.sendMessage(
       booking.customerPhone,
       `❌ Tu reserva no pudo ser confirmada.\n\n` +
       `Motivo: ${reason}\n\n` +

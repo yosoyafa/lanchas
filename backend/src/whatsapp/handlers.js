@@ -1,9 +1,9 @@
-const client = require('./client');
+const whatsappApi = require('./api');
 const prisma = require('../config/database');
 const cloudinary = require('../config/cloudinary');
 const { MESSAGES, BOAT_IMAGES } = require('../config/messages');
 const fs = require('fs');
-const { MessageMedia } = require('whatsapp-web.js');
+const path = require('path');
 
 // Store conversation context in memory
 // Format: { phoneNumber: { lastMessageTime, infoSent, conversationStarted, step, selectedDate, selectedBoat } }
@@ -12,59 +12,64 @@ const conversationContext = new Map();
 // Reset context after 1 hour of inactivity
 const CONTEXT_TIMEOUT = 60 * 60 * 1000; // 1 hour
 
-// DEBUGGING: Listen to ALL possible message events
-client.on('message_create', async (message) => {
-  console.log(`🆕 message_create - From: ${message.from}, Type: ${message.type}, FromMe: ${message.fromMe}, Body: ${message.body?.substring(0, 50)}`);
-});
-
-client.on('message_received', async (message) => {
-  console.log(`📥 message_received - From: ${message.from}, Type: ${message.type}, Body: ${message.body?.substring(0, 50)}`);
-});
-
-client.on('message_ack', async (message) => {
-  console.log(`✓ message_ack - From: ${message.from}`);
-});
-
-// Handler for incoming messages
-client.on('message', async (message) => {
-  // Debug: Log all incoming messages
-  console.log(`📨 Message received - From: ${message.from}, Type: ${message.type}, FromMe: ${message.fromMe}, Body: ${message.body?.substring(0, 50)}`);
-
-  // Ignore group messages and status/broadcasts
-  if (message.from.includes('@g.us') ||
-      message.from === 'status@broadcast') {
-    if (message.from === 'status@broadcast') {
-      console.log('📢 Ignored status/broadcast message');
-    }
-    return;
-  }
-
-  // TEMPORARILY DISABLED: Ignore own messages
-  // if (message.fromMe) {
-  //   console.log('🚫 Ignored own message');
-  //   return;
-  // }
-
+// Main webhook handler
+async function handleWebhook(body) {
   try {
-    // If it's an image/document, assume it's a payment receipt
-    if (message.hasMedia && (message.type === 'image' || message.type === 'document')) {
-      await handlePaymentReceipt(message);
+    const entry = body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
+
+    if (!value) {
+      console.log('⚠️  Webhook received but no value');
       return;
     }
 
-    // If it's text, handle contextually
-    if (message.type === 'chat') {
-      await handleTextMessage(message);
+    // Handle incoming messages
+    if (value.messages) {
+      const message = value.messages[0];
+      await handleIncomingMessage(message, value.metadata);
+    }
+
+    // Handle message status updates (optional)
+    if (value.statuses) {
+      const status = value.statuses[0];
+      console.log(`📊 Message ${status.id} status: ${status.status}`);
     }
   } catch (error) {
-    console.error('❌ Error handling message:', error);
-    await message.reply('Lo siento, ocurrió un error. Intenta de nuevo.');
+    console.error('❌ Error handling webhook:', error);
+    throw error;
   }
-});
+}
 
-async function handleTextMessage(message) {
+// Process incoming message
+async function handleIncomingMessage(message, metadata) {
   const phoneNumber = message.from;
-  const messageText = message.body.toLowerCase().trim();
+  const messageId = message.id;
+  const messageType = message.type;
+
+  console.log(`📨 Message from ${phoneNumber}, Type: ${messageType}`);
+
+  try {
+    // Mark as read
+    await whatsappApi.markAsRead(messageId);
+
+    // Handle different message types
+    if (messageType === 'text') {
+      await handleTextMessage(phoneNumber, message.text.body);
+    } else if (messageType === 'image' || messageType === 'document') {
+      await handlePaymentReceipt(phoneNumber, message[messageType]);
+    } else {
+      console.log(`⏭️  Ignored message type: ${messageType}`);
+    }
+  } catch (error) {
+    console.error('❌ Error processing message:', error);
+    await whatsappApi.sendMessage(phoneNumber, 'Lo siento, ocurrió un error. Intenta de nuevo.');
+  }
+}
+
+// Handle text messages
+async function handleTextMessage(phoneNumber, messageText) {
+  const text = messageText.toLowerCase().trim();
 
   // Get or create conversation context
   let context = conversationContext.get(phoneNumber);
@@ -89,7 +94,7 @@ async function handleTextMessage(message) {
 
   // REGLA: Solo iniciar conversación si dice "lancha"
   if (!context.conversationStarted) {
-    if (!messageText.includes('lancha')) {
+    if (!text.includes('lancha')) {
       console.log(`⏭️  Ignored message from ${phoneNumber} (no "lancha" keyword)`);
       return;
     }
@@ -115,14 +120,15 @@ async function handleTextMessage(message) {
 
   // Permitir resetear en cualquier momento
   const resetCommands = ['cancelar', 'reiniciar', 'inicio', 'empezar', 'reset'];
-  if (resetCommands.some(cmd => messageText === cmd)) {
+  if (resetCommands.some(cmd => text === cmd)) {
     console.log(`🔄 Resetting conversation for ${phoneNumber}`);
     context.step = 'initial';
     context.infoSent = false;
     context.conversationStarted = false;
     context.selectedDate = null;
     context.selectedBoat = null;
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       '🔄 Conversación reiniciada.\n\n' +
       'Escribe "lancha" cuando quieras reservar de nuevo.'
     );
@@ -132,20 +138,21 @@ async function handleTextMessage(message) {
   // Si está esperando fecha y lancha, procesar primero
   if (context.step === 'awaiting_date_and_boat') {
     console.log(`🎯 Processing date and boat selection for ${phoneNumber}`);
-    await handleDateAndBoatSelection(message, context);
+    await handleDateAndBoatSelection(phoneNumber, text, context);
     return;
   }
 
   // Si está esperando nombre
   if (context.step === 'awaiting_name') {
     console.log(`👤 Processing name for ${phoneNumber}`);
-    await handleNameInput(message, context);
+    await handleNameInput(phoneNumber, text, context);
     return;
   }
 
   // Si está esperando pago, no permitir reinicio con keywords
   if (context.step === 'awaiting_payment') {
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       'Por favor envía una foto de tu comprobante de pago para confirmar tu reserva.\n\n' +
       'Si quieres cancelar y empezar de nuevo, escribe "cancelar".'
     );
@@ -154,11 +161,11 @@ async function handleTextMessage(message) {
 
   // Keywords that trigger info restart (solo cuando no está en medio de proceso)
   const infoKeywords = ['info', 'información', 'lancha', 'precio', 'renta', 'alquiler', 'disponible'];
-  const needsInfo = infoKeywords.some(keyword => messageText.includes(keyword));
+  const needsInfo = infoKeywords.some(keyword => text.includes(keyword));
 
   // Si es la primera vez o pide info de nuevo (y no está en medio de proceso)
   if (!context.infoSent || needsInfo) {
-    await sendBoatInfo(message);
+    await sendBoatInfo(phoneNumber);
     context.infoSent = true;
     context.step = 'awaiting_date_and_boat';
     return;
@@ -166,7 +173,8 @@ async function handleTextMessage(message) {
 
   // Si cliente ya tiene reserva pendiente
   if (existingBooking && existingBooking.status === 'PAYMENT_SUBMITTED') {
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       `Hola! Ya recibimos tu comprobante de pago ✅\n\n` +
       `Referencia: ${existingBooking.id.slice(0, 8)}\n\n` +
       `Estamos revisándolo y te confirmaremos pronto. ` +
@@ -183,7 +191,8 @@ async function handleTextMessage(message) {
       month: 'long',
       day: 'numeric'
     });
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       `¡Hola! Tienes una reserva confirmada:\n\n` +
       `📅 Fecha: ${bookingDate}\n` +
       `🚤 Lancha: ${existingBooking.boatNumber}\n\n` +
@@ -194,7 +203,8 @@ async function handleTextMessage(message) {
   }
 
   // Respuesta genérica
-  await message.reply(
+  await whatsappApi.sendMessage(
+    phoneNumber,
     `Hola! 👋\n\n` +
     `¿En qué puedo ayudarte?\n\n` +
     `Escribe:\n` +
@@ -203,29 +213,27 @@ async function handleTextMessage(message) {
   );
 }
 
-async function sendBoatInfo(message) {
+async function sendBoatInfo(phoneNumber) {
   try {
     // 1. Welcome message
-    await message.reply(MESSAGES.welcome);
+    await whatsappApi.sendMessage(phoneNumber, MESSAGES.welcome);
+
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 2. Boat 1 photo
-    const media1 = await MessageMedia.fromUrl(BOAT_IMAGES.boat1, { unsafeMime: true });
-    await client.sendMessage(message.from, media1, {
-      caption: MESSAGES.boat1
-    });
+    await whatsappApi.sendImage(phoneNumber, BOAT_IMAGES.boat1, MESSAGES.boat1);
 
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 3. Boat 2 photo
-    const media2 = await MessageMedia.fromUrl(BOAT_IMAGES.boat2, { unsafeMime: true });
-    await client.sendMessage(message.from, media2, {
-      caption: MESSAGES.boat2
-    });
+    await whatsappApi.sendImage(phoneNumber, BOAT_IMAGES.boat2, MESSAGES.boat2);
 
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // 4. Ask for date and boat selection
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       '📅 Para verificar disponibilidad, por favor indícame:\n\n' +
       '1️⃣ ¿Qué fecha necesitas? (Ejemplo: 25 de enero)\n' +
       '2️⃣ ¿Qué lancha prefieres? (1 o 2)\n\n' +
@@ -233,21 +241,20 @@ async function sendBoatInfo(message) {
       '💡 Escribe "cancelar" si quieres empezar de nuevo.'
     );
 
-    console.log(`📨 Sent boat info to ${message.from}`);
+    console.log(`📨 Sent boat info to ${phoneNumber}`);
   } catch (error) {
     console.error('❌ Error sending boat info:', error);
-    await message.reply('Disculpa, hubo un problema enviando la información. Intenta de nuevo.');
+    await whatsappApi.sendMessage(phoneNumber, 'Disculpa, hubo un problema enviando la información. Intenta de nuevo.');
   }
 }
 
-async function handleDateAndBoatSelection(message, context) {
-  const messageText = message.body.toLowerCase();
-
+async function handleDateAndBoatSelection(phoneNumber, messageText, context) {
   // Parsear fecha y lancha del mensaje
   const parsed = parseReservationRequest(messageText);
 
   if (!parsed.date || !parsed.boat) {
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       'No pude entender tu solicitud. 🤔\n\n' +
       'Por favor indica la fecha y la lancha en tu mensaje.\n\n' +
       'Ejemplo: "25 de enero, lancha 1"\n' +
@@ -261,7 +268,8 @@ async function handleDateAndBoatSelection(message, context) {
   today.setHours(0, 0, 0, 0);
 
   if (parsed.date < today) {
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       '❌ La fecha que elegiste ya pasó.\n\n' +
       'Por favor indica una fecha futura.\n\n' +
       'Ejemplo: "25 de enero, lancha 1"'
@@ -285,25 +293,27 @@ async function handleDateAndBoatSelection(message, context) {
       day: 'numeric'
     });
 
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       `✅ ¡Excelente! La Lancha ${parsed.boat} está disponible para el ${dateStr}.\n\n` +
       `👤 Para continuar, por favor indícame tu nombre completo.\n\n` +
       `Ejemplo: "Juan Pérez"`
     );
 
-    console.log(`✅ Availability confirmed for ${message.from}: Boat ${parsed.boat} on ${dateStr}`);
+    console.log(`✅ Availability confirmed for ${phoneNumber}: Boat ${parsed.boat} on ${dateStr}`);
   } else {
     // ❌ NO DISPONIBLE - Ofrecer alternativas
-    await offerAlternatives(message, parsed.date, parsed.boat, availability);
+    await offerAlternatives(phoneNumber, parsed.date, parsed.boat, availability);
   }
 }
 
-async function handleNameInput(message, context) {
-  const name = message.body.trim();
+async function handleNameInput(phoneNumber, messageText, context) {
+  const name = messageText.trim();
 
   // Validar que el nombre tenga al menos 2 caracteres
   if (name.length < 2) {
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       'Por favor ingresa un nombre válido.\n\n' +
       'Ejemplo: "Juan Pérez"'
     );
@@ -321,7 +331,8 @@ async function handleNameInput(message, context) {
     day: 'numeric'
   });
 
-  await message.reply(
+  await whatsappApi.sendMessage(
+    phoneNumber,
     `Perfecto, ${name}! 👍\n\n` +
     `📋 Resumen de tu reserva:\n` +
     `📅 Fecha: ${dateStr}\n` +
@@ -331,7 +342,7 @@ async function handleNameInput(message, context) {
     '💡 Escribe "cancelar" si quieres empezar de nuevo.'
   );
 
-  console.log(`👤 Name saved for ${message.from}: ${name}`);
+  console.log(`👤 Name saved for ${phoneNumber}: ${name}`);
 }
 
 function parseReservationRequest(text) {
@@ -413,7 +424,7 @@ async function checkAvailability(requestedDate, boatNumber) {
   };
 }
 
-async function offerAlternatives(message, requestedDate, requestedBoat, availability) {
+async function offerAlternatives(phoneNumber, requestedDate, requestedBoat, availability) {
   const dateStr = requestedDate.toLocaleDateString('es-CO', {
     weekday: 'long',
     year: 'numeric',
@@ -452,7 +463,7 @@ async function offerAlternatives(message, requestedDate, requestedBoat, availabi
     response += `\nResponde con una de estas fechas para reservar.`;
   }
 
-  await message.reply(response);
+  await whatsappApi.sendMessage(phoneNumber, response);
 }
 
 async function findNextAvailableDates(startDate, boatNumber, count) {
@@ -477,12 +488,13 @@ async function findNextAvailableDates(startDate, boatNumber, count) {
   return availableDates;
 }
 
-async function handlePaymentReceipt(message) {
-  const context = conversationContext.get(message.from);
+async function handlePaymentReceipt(phoneNumber, media) {
+  const context = conversationContext.get(phoneNumber);
 
   // Verificar que el cliente esté en el paso correcto
   if (!context || context.step !== 'awaiting_payment') {
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       'Para hacer una reserva, primero debes elegir una fecha y lancha.\n\n' +
       'Escribe "info" para comenzar.'
     );
@@ -491,11 +503,7 @@ async function handlePaymentReceipt(message) {
 
   try {
     // 1. Download the media
-    const media = await message.downloadMedia();
-    if (!media) {
-      await message.reply('No pude descargar la imagen. Intenta de nuevo.');
-      return;
-    }
+    const imageBuffer = await whatsappApi.downloadMedia(media.id);
 
     // 2. Save temporarily
     const tempDir = '/tmp';
@@ -503,8 +511,8 @@ async function handlePaymentReceipt(message) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
 
-    const tempPath = `${tempDir}/${Date.now()}_receipt.jpg`;
-    fs.writeFileSync(tempPath, media.data, 'base64');
+    const tempPath = path.join(tempDir, `${Date.now()}_receipt.jpg`);
+    fs.writeFileSync(tempPath, imageBuffer);
 
     // 3. Upload to Cloudinary
     const result = await cloudinary.uploader.upload(tempPath, {
@@ -518,7 +526,7 @@ async function handlePaymentReceipt(message) {
     // 4. Create booking in DB with pre-selected date, boat and name
     const booking = await prisma.booking.create({
       data: {
-        customerPhone: message.from,
+        customerPhone: phoneNumber,
         status: 'PAYMENT_SUBMITTED',
         paymentReceiptUrl: result.secure_url,
         boatNumber: context.selectedBoat,
@@ -542,7 +550,8 @@ async function handlePaymentReceipt(message) {
       day: 'numeric'
     });
 
-    await message.reply(
+    await whatsappApi.sendMessage(
+      phoneNumber,
       `✅ Comprobante recibido!\n\n` +
       `👤 Nombre: ${booking.customerName}\n` +
       `📅 Fecha: ${dateStr}\n` +
@@ -557,7 +566,7 @@ async function handlePaymentReceipt(message) {
     console.log(`💰 New payment receipt: ${booking.id} - Boat ${booking.boatNumber} on ${dateStr}`);
   } catch (error) {
     console.error('❌ Error handling payment receipt:', error);
-    await message.reply('Hubo un error procesando tu comprobante. Intenta de nuevo.');
+    await whatsappApi.sendMessage(phoneNumber, 'Hubo un error procesando tu comprobante. Intenta de nuevo.');
   }
 }
 
@@ -572,4 +581,4 @@ setInterval(() => {
   }
 }, 2 * 60 * 60 * 1000);
 
-module.exports = { client };
+module.exports = { handleWebhook };
