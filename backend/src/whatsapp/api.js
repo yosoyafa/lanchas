@@ -4,6 +4,19 @@ const WHATSAPP_API_URL = 'https://graph.facebook.com/v21.0';
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
+// Validate environment variables on startup
+if (!PHONE_NUMBER_ID) {
+  console.error('❌ WHATSAPP_PHONE_NUMBER_ID is not set!');
+}
+if (!ACCESS_TOKEN) {
+  console.error('❌ WHATSAPP_ACCESS_TOKEN is not set!');
+}
+if (PHONE_NUMBER_ID && ACCESS_TOKEN) {
+  console.log('✅ WhatsApp API credentials loaded');
+  console.log(`📱 Phone Number ID: ${PHONE_NUMBER_ID}`);
+  console.log(`🔑 Access Token: ${ACCESS_TOKEN.substring(0, 20)}...`);
+}
+
 // Send text message
 async function sendMessage(to, text) {
   const url = `${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`;

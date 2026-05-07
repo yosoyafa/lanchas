@@ -43,6 +43,8 @@ router.post('/webhook', async (req, res) => {
     res.sendStatus(200);
   } catch (error) {
     console.error('❌ Webhook processing error:', error);
+    console.error('Error stack:', error.stack);
+    console.error('Error message:', error.message);
     res.sendStatus(500);
   }
 });
