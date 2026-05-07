@@ -5,6 +5,7 @@ require('dotenv').config();
 const authRoutes = require('./api/auth');
 const bookingsRoutes = require('./api/bookings');
 const whatsappRoutes = require('./api/whatsapp');
+const privacyRoutes = require('./api/privacy');
 
 const app = express();
 
@@ -18,6 +19,9 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+
+// Public routes (no /api prefix)
+app.use('/', privacyRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
