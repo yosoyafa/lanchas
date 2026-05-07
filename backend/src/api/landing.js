@@ -4,7 +4,8 @@ const { BOAT_IMAGES } = require('../config/messages');
 
 // Landing page
 router.get('/', (req, res) => {
-  res.send(`
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.status(200).send(`
     <!DOCTYPE html>
     <html lang="es">
     <head>
@@ -242,7 +243,7 @@ router.get('/', (req, res) => {
 
         <div class="boats-container">
           <div class="boat-card">
-            <img src="${BOAT_IMAGES.boat1}" alt="Lancha 1" class="boat-image" onerror="this.src='https://images.unsplash.com/photo-1540946485063-a40da27545f8?w=600'">
+            <img src="${BOAT_IMAGES.boat1}" alt="Lancha 1" class="boat-image">
             <div class="boat-info">
               <h2 class="boat-title">🚤 Lancha 1</h2>
               <ul class="boat-details">
@@ -256,7 +257,7 @@ router.get('/', (req, res) => {
           </div>
 
           <div class="boat-card">
-            <img src="${BOAT_IMAGES.boat2}" alt="Lancha 2" class="boat-image" onerror="this.src='https://images.unsplash.com/photo-1567899378494-47b22a2ae96a?w=600'">
+            <img src="${BOAT_IMAGES.boat2}" alt="Lancha 2" class="boat-image">
             <div class="boat-info">
               <h2 class="boat-title">🚤 Lancha 2</h2>
               <ul class="boat-details">
