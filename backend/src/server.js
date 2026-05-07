@@ -7,6 +7,7 @@ const bookingsRoutes = require('./api/bookings');
 const whatsappRoutes = require('./api/whatsapp');
 const privacyRoutes = require('./api/privacy');
 const landingRoutes = require('./api/landing');
+const debugRoutes = require('./api/debug');
 
 const app = express();
 
@@ -20,6 +21,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/bookings', bookingsRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
+app.use('/api', debugRoutes);
 
 // Public routes (no /api prefix)
 app.use('/', landingRoutes);
