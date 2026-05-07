@@ -6,6 +6,7 @@ const authRoutes = require('./api/auth');
 const bookingsRoutes = require('./api/bookings');
 const whatsappRoutes = require('./api/whatsapp');
 const privacyRoutes = require('./api/privacy');
+const landingRoutes = require('./api/landing');
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use('/api/bookings', bookingsRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
 // Public routes (no /api prefix)
+app.use('/', landingRoutes);
 app.use('/', privacyRoutes);
 
 const PORT = process.env.PORT || 3000;
