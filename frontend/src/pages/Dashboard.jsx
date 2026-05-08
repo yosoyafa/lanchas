@@ -10,7 +10,7 @@ export function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('pending'); // 'pending', 'confirmed', 'rejected', or 'calendar'
 
-  // Fetch pending bookings
+  // Fetch pending bookings (only when tab is active)
   const { data: pendingBookings = [], isLoading: loadingPending } = useQuery({
     queryKey: ['bookings', 'pending'],
     queryFn: async () => {
@@ -18,6 +18,9 @@ export function Dashboard() {
       return data;
     },
     refetchInterval: 30000,
+    enabled: activeTab === 'pending', // Only fetch when viewing this tab
+    staleTime: 10000, // Consider data fresh for 10s
+    cacheTime: 300000, // Keep in cache for 5 minutes
     onError: (error) => {
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
@@ -26,7 +29,7 @@ export function Dashboard() {
     }
   });
 
-  // Fetch confirmed bookings
+  // Fetch confirmed bookings (only when tab is active)
   const { data: confirmedBookings = [], isLoading: loadingConfirmed } = useQuery({
     queryKey: ['bookings', 'confirmed'],
     queryFn: async () => {
@@ -34,6 +37,9 @@ export function Dashboard() {
       return data;
     },
     refetchInterval: 30000,
+    enabled: activeTab === 'confirmed', // Only fetch when viewing this tab
+    staleTime: 10000, // Consider data fresh for 10s
+    cacheTime: 300000, // Keep in cache for 5 minutes
     onError: (error) => {
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
@@ -42,7 +48,7 @@ export function Dashboard() {
     }
   });
 
-  // Fetch rejected bookings
+  // Fetch rejected bookings (only when tab is active)
   const { data: rejectedBookings = [], isLoading: loadingRejected } = useQuery({
     queryKey: ['bookings', 'rejected'],
     queryFn: async () => {
@@ -50,6 +56,9 @@ export function Dashboard() {
       return data;
     },
     refetchInterval: 30000,
+    enabled: activeTab === 'rejected', // Only fetch when viewing this tab
+    staleTime: 10000, // Consider data fresh for 10s
+    cacheTime: 300000, // Keep in cache for 5 minutes
     onError: (error) => {
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
