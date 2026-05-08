@@ -17,7 +17,7 @@ export function Dashboard() {
       const { data } = await api.get('/bookings?status=PAYMENT_SUBMITTED');
       return data;
     },
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Auto-refresh every 30s
     enabled: activeTab === 'pending', // Only fetch when viewing this tab
     staleTime: 10000, // Consider data fresh for 10s
     cacheTime: 300000, // Keep in cache for 5 minutes
@@ -36,7 +36,7 @@ export function Dashboard() {
       const { data } = await api.get('/bookings?status=CONFIRMED');
       return data;
     },
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Auto-refresh every 30s
     enabled: activeTab === 'confirmed', // Only fetch when viewing this tab
     staleTime: 10000, // Consider data fresh for 10s
     cacheTime: 300000, // Keep in cache for 5 minutes
@@ -55,7 +55,7 @@ export function Dashboard() {
       const { data } = await api.get('/bookings?status=REJECTED');
       return data;
     },
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Auto-refresh every 30s
     enabled: activeTab === 'rejected', // Only fetch when viewing this tab
     staleTime: 10000, // Consider data fresh for 10s
     cacheTime: 300000, // Keep in cache for 5 minutes
@@ -78,9 +78,9 @@ export function Dashboard() {
         b.status === 'CONFIRMED' || b.status === 'PAYMENT_SUBMITTED'
       );
     },
-    refetchInterval: 60000, // Refresh every 60s instead of 30s
+    refetchInterval: 30000, // Auto-refresh every 30s (same as other tabs)
     enabled: activeTab === 'calendar',
-    staleTime: 30000, // Consider data fresh for 30s
+    staleTime: 10000, // Consider data fresh for 10s
     cacheTime: 300000, // Keep in cache for 5 minutes
     onError: (error) => {
       if (error.response?.status === 401) {
