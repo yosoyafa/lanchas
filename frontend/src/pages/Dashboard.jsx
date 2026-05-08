@@ -58,15 +58,21 @@ export function Dashboard() {
     }
   });
 
-  // Fetch all bookings for calendar view
+  // Fetch all bookings for calendar view (optimized)
   const { data: allBookings = [], isLoading: loadingAll } = useQuery({
     queryKey: ['bookings', 'all'],
     queryFn: async () => {
+      // Only fetch confirmed and pending bookings (not rejected)
       const { data } = await api.get('/bookings');
-      return data;
+      // Filter in backend would be better, but filter here for now
+      return data.filter(b =>
+        b.status === 'CONFIRMED' || b.status === 'PAYMENT_SUBMITTED'
+      );
     },
-    refetchInterval: 30000,
+    refetchInterval: 60000, // Refresh every 60s instead of 30s
     enabled: activeTab === 'calendar',
+    staleTime: 30000, // Consider data fresh for 30s
+    cacheTime: 300000, // Keep in cache for 5 minutes
     onError: (error) => {
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
